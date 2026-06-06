@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Siera4 BD Lead Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f4f5f7; color: #1a1a2e; font-size: 13px; }
+
+  header {
+    background: #1a1a2e;
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header .logo { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+  header .logo span { color: #c0392b; }
+  header .subtitle { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  .stats-bar {
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 12px 24px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat .val { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+  .stat .lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .5px; }
+  .stat.green .val { color: #27ae60; }
+  .stat.red .val { color: #c0392b; }
+  .stat.blue .val { color: #2980b9; }
+
+  .controls {
+    padding: 14px 24px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .controls input, .controls select {
+    padding: 7px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 12px;
+    background: white;
+  }
+  .controls input { width: 180px; }
+  button {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .btn-add { background: #1a1a2e; color: white; }
+  .btn-add:hover { background: #2d2d4e; }
+  .btn-export { background: #c0392b; color: white; }
+  .btn-export:hover { background: #a93226; }
+
+  .table-wrap { overflow-x: auto; padding: 0 24px 24px; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); min-width: 900px; }
+  thead { background: #1a1a2e; color: white; }
+  th { padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
+  .badge-A { background: #d5f0e0; color: #1a7a40; }
+  .badge-B { background: #d0e8f7; color: #1a5a8a; }
+  .badge-C { background: #f9e5d0; color: #a04010; }
+
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+  .s-new { background: #eee; color: #555; }
+  .s-qualified { background: #d5eaf9; color: #1a5a8a; }
+  .s-proposal { background: #fff3cd; color: #856404; }
+  .s-negotiation { background: #ffe0b2; color: #b35900; }
+  .s-converted { background: #d4edda; color: #155724; }
+  .s-lost { background: #f8d7da; color: #721c24; }
+
+  .del-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 14px; padding: 0 4px; }
+  .del-btn:hover { color: #c0392b; }
+
+  .empty-row td { text-align: center; color: #bbb; padding: 32px; font-size: 12px; }
+
+  .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:100; align-items:center; justify-content:center; }
+  .modal-bg.show { display:flex; }
+  .modal { background:white; border-radius:10px; padding:24px; width:520px; max-width:95vw; max-height:90vh; overflow-y:auto; }
+  .modal h3 { margin-bottom:16px; font-size:15px; color:#1a1a2e; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-group { display:flex; flex-direction:column; gap:4px; }
+  .form-group.full { grid-column:1/-1; }
+  .form-group label { font-size:11px; font-weight:600; color:#555; text-transform:uppercase; letter-spacing:.4px; }
+  .form-group input, .form-group select, .form-group textarea {
+    padding:8px 10px; border:1px solid #ddd; border-radius:6px; font-size:13px; font-family:inherit;
+  }
+  .form-group textarea { resize:vertical; min-height:60px; }
+  .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+  .btn-cancel { background:#eee; color:#555; }
+
+  .save-notice { font-size:11px; color:#888; padding: 0 24px 8px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">siera<span>4</span> CONSULTING</div>
+    <div class="subtitle">BD Lead Tracker — Hassamuddin Mughal &nbsp;|&nbsp; Probation: 4 Jun – 4 Sep 2026</div>
+  </div>
+  <div style="text-align:right;font-size:11px;color:#aaa;">info@siera4consulting.com</div>
+</header>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat"><div class="val" id="sTotalLeads">0</div><div class="lbl">Total Leads</div></div>
+  <div class="stat blue"><div class="val" id="sMonth1">0</div><div class="lbl">Month 1 Leads</div></div>
+  <div class="stat blue"><div class="val" id="sMonth2">0</div><div class="lbl">Month 2 Leads</div></div>
+  <div class="stat blue"><div class="val" id="sMonth3">0</div><div class="lbl">Month 3 Leads</div></div>
+  <div class="stat green"><div class="val" id="sConverted">0</div><div class="lbl">Converted</div></div>
+  <div class="stat red"><div class="val" id="sStreams">0/3</div><div class="lbl">Streams Active</div></div>
+  <div class="stat"><div class="val" id="sPipelineVal">—</div><div class="lbl">Est. Pipeline Value</div></div>
+</div>
+
+<div class="controls">
+  <input type="text" id="searchBox" placeholder="🔍  Search leads..." oninput="renderTable()">
+  <select id="filterStream" onchange="renderTable()">
+    <option value="">All Streams</option>
+    <option value="A">Stream A – Process Advisory</option>
+    <option value="B">Stream B – Market Entry</option>
+    <option value="C">Stream C – Marketing</option>
+  </select>
+  <select id="filterStatus" onchange="renderTable()">
+    <option value="">All Statuses</option>
+    <option value="New">New</option>
+    <option value="Qualified">Qualified</option>
+    <option value="Proposal Sent">Proposal Sent</option>
+    <option value="Negotiation">Negotiation</option>
+    <option value="Converted">Converted</option>
+    <option value="Lost">Lost</option>
+  </select>
+  <button class="btn-add" onclick="openModal()">+ Add Lead</button>
+  <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+</div>
+<div class="save-notice">⚠️ Data is saved in this browser only. Use "Export CSV" regularly to back up your leads.</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Intro Date</th>
+        <th>Company</th>
+        <th>Contact</th>
+        <th>Role / Title</th>
+        <th>Country</th>
+        <th>Stream</th>
+        <th>Status</th>
+        <th>Est. Value (USD)</th>
+        <th>Notice Sent</th>
+        <th>Notes</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Add New Lead</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Introduction Date *</label>
+        <input type="date" id="fDate">
+      </div>
+      <div class="form-group">
+        <label>Company Name *</label>
+        <input type="text" id="fCompany" placeholder="e.g. Al Faris Group">
+      </div>
+      <div class="form-group">
+        <label>Contact Name *</label>
+        <input type="text" id="fContact" placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label>Role / Title *</label>
+        <input type="text" id="fRole" placeholder="e.g. CEO, COO, Project Director">
+      </div>
+      <div class="form-group">
+        <label>Country *</label>
+        <input type="text" id="fCountry" placeholder="e.g. Saudi Arabia">
+      </div>
+      <div class="form-group">
+        <label>Stream *</label>
+        <select id="fStream">
+          <option value="">Select stream</option>
+          <option value="A">A – Process Advisory & Digital PM</option>
+          <option value="B">B – Market Entry & Representation</option>
+          <option value="C">C – Marketing & Branding</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="fStatus">
+          <option value="New">New</option>
+          <option value="Qualified">Qualified</option>
+          <option value="Proposal Sent">Proposal Sent</option>
+          <option value="Negotiation">Negotiation</option>
+          <option value="Converted">Converted</option>
+          <option value="Lost">Lost</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Est. Contract Value (USD)</label>
+        <input type="number" id="fValue" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Lead Notice Sent to Siera4?</label>
+        <select id="fNotice">
+          <option value="Yes">Yes</option>
+          <option value="No – Pending">No – Pending</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Nature of Opportunity / Notes</label>
+        <textarea id="fNotes" placeholder="Brief description of business need, context, or next steps"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-add" onclick="saveLead()">Save Lead</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'siera4_bd_leads';
+  let leads = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  let editIdx = null;
+
+  const STATUS_CLASSES = {
+    'New': 's-new', 'Qualified': 's-qualified', 'Proposal Sent': 's-proposal',
+    'Negotiation': 's-negotiation', 'Converted': 's-converted', 'Lost': 's-lost'
+  };
+
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(leads)); }
+
+  function openModal(idx) {
+    editIdx = idx !== undefined ? idx : null;
+    const l = editIdx !== null ? leads[editIdx] : null;
+    document.getElementById('modalTitle').textContent = l ? 'Edit Lead' : 'Add New Lead';
+    document.getElementById('fDate').value = l ? l.date : new Date().toISOString().split('T')[0];
+    document.getElementById('fCompany').value = l ? l.company : '';
+    document.getElementById('fContact').value = l ? l.contact : '';
+    document.getElementById('fRole').value = l ? l.role : '';
+    document.getElementById('fCountry').value = l ? l.country : '';
+    document.getElementById('fStream').value = l ? l.stream : '';
+    document.getElementById('fStatus').value = l ? l.status : 'New';
+    document.getElementById('fValue').value = l ? l.value : '';
+    document.getElementById('fNotice').value = l ? l.notice : 'No – Pending';
+    document.getElementById('fNotes').value = l ? l.notes : '';
+    document.getElementById('modalBg').classList.add('show');
+  }
+
+  function closeModal() { document.getElementById('modalBg').classList.remove('show'); }
+
+  function saveLead() {
+    const d = {
+      date: document.getElementById('fDate').value,
+      company: document.getElementById('fCompany').value.trim(),
+      contact: document.getElementById('fContact').value.trim(),
+      role: document.getElementById('fRole').value.trim(),
+      country: document.getElementById('fCountry').value.trim(),
+      stream: document.getElementById('fStream').value,
+      status: document.getElementById('fStatus').value,
+      value: parseFloat(document.getElementById('fValue').value) || 0,
+      notice: document.getElementById('fNotice').value,
+      notes: document.getElementById('fNotes').value.trim(),
+    };
+    if (!d.date || !d.company || !d.contact || !d.stream) {
+      alert('Please fill in all required fields (*)'); return;
+    }
+    if (editIdx !== null) leads[editIdx] = d; else leads.push(d);
+    save(); closeModal(); renderTable(); updateStats();
+  }
+
+  function deleteLead(i) {
+    if (confirm('Remove this lead?')) { leads.splice(i, 1); save(); renderTable(); updateStats(); }
+  }
+
+  function renderTable() {
+    const q = document.getElementById('searchBox').value.toLowerCase();
+    const fs = document.getElementById('filterStream').value;
+    const fst = document.getElementById('filterStatus').value;
+    const tbody = document.getElementById('tableBody');
+    const filtered = leads.map((l, i) => ({ ...l, _i: i })).filter(l =>
+      (!q || [l.company, l.contact, l.role, l.country, l.notes].some(v => (v||'').toLowerCase().includes(q))) &&
+      (!fs || l.stream === fs) &&
+      (!fst || l.status === fst)
+    );
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="12">No leads yet. Click "+ Add Lead" to log your first introduction.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = filtered.map((l, n) => `
+      <tr>
+        <td style="color:#888;font-weight:600">${n + 1}</td>
+        <td style="white-space:nowrap">${l.date}</td>
+        <td style="font-weight:600">${l.company}</td>
+        <td>${l.contact}</td>
+        <td style="color:#555">${l.role}</td>
+        <td>${l.country}</td>
+        <td><span class="badge badge-${l.stream}">${l.stream}</span></td>
+        <td><span class="status-badge ${STATUS_CLASSES[l.status] || 's-new'}">${l.status}</span></td>
+        <td>${l.value ? '$' + l.value.toLocaleString() : '—'}</td>
+        <td style="color:${l.notice==='Yes'?'#27ae60':'#e67e22'};font-weight:600">${l.notice}</td>
+        <td style="color:#777;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.notes}">${l.notes || '—'}</td>
+        <td>
+          <button class="del-btn" onclick="openModal(${l._i})" title="Edit">✏️</button>
+          <button class="del-btn" onclick="deleteLead(${l._i})" title="Delete">🗑</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function updateStats() {
+    const probStart = new Date('2026-06-04');
+    const m1end = new Date('2026-07-04'), m2end = new Date('2026-08-04');
+    let m1=0, m2=0, m3=0, converted=0, totalVal=0;
+    const streams = new Set();
+    leads.forEach(l => {
+      const d = new Date(l.date);
+      if (d >= probStart && d < m1end) m1++;
+      else if (d >= m1end && d < m2end) m2++;
+      else if (d >= m2end) m3++;
+      if (l.status === 'Converted') converted++;
+      if (l.value) totalVal += l.value;
+      if (l.stream) streams.add(l.stream);
+    });
+    document.getElementById('sTotalLeads').textContent = leads.length;
+    document.getElementById('sMonth1').textContent = m1;
+    document.getElementById('sMonth2').textContent = m2;
+    document.getElementById('sMonth3').textContent = m3;
+    document.getElementById('sConverted').textContent = converted;
+    document.getElementById('sStreams').textContent = streams.size + '/3';
+    document.getElementById('sPipelineVal').textContent = totalVal ? '$' + totalVal.toLocaleString() : '—';
+  }
+
+  function exportCSV() {
+    if (!leads.length) { alert('No leads to export.'); return; }
+    const h = ['#','Date','Company','Contact','Role','Country','Stream','Status','Est. Value (USD)','Notice Sent','Notes'];
+    const rows = leads.map((l, i) => [i+1, l.date, l.company, l.contact, l.role, l.country, l.stream, l.status, l.value||'', l.notice, l.notes].map(v => `"${String(v).replace(/"/g,'""')}"`));
+    const csv = [h.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    a.download = `Siera4_BD_Leads_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  }
+
+  document.getElementById('modalBg').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalBg')) closeModal();
+  });
+
+  renderTable();
+  updateStats();
+</script>
+</body>
+</html>
